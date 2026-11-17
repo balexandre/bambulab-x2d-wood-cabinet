@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>X2D Oak Enclosure</title>
+<meta name="description" content="Parametric 3D concept of an oak-trimmed enclosure for a Bambu Lab X2D with external AMS 2 Pro and AMS HT, purge chute to an external bin, cable pass-through and a future exhaust port.">
+<style>
+  :root{
+    --bg:#efeae2; --panel:#fbf8f3; --ink:#2b2520; --muted:#7a6e62; --line:#e2d9cc;
+    --accent:#a8692e; --accent-ink:#fff; --ok:#3f7d4e; --warn:#b07a12; --bad:#b23b2e;
+    --chip:#f2ebe0; --scene:#ece6dc;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1a1816; --panel:#24211e; --ink:#ece5da; --muted:#a3978a; --line:#3a352f;
+      --accent:#d08a45; --accent-ink:#1a1816; --ok:#6fbf80; --warn:#e0a93a; --bad:#ec6b5c;
+      --chip:#2e2a26; --scene:#1f1d1a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1a1816; --panel:#24211e; --ink:#ece5da; --muted:#a3978a; --line:#3a352f;
+    --accent:#d08a45; --accent-ink:#1a1816; --ok:#6fbf80; --warn:#e0a93a; --bad:#ec6b5c;
+    --chip:#2e2a26; --scene:#1f1d1a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .app{display:grid;grid-template-columns:360px 1fr;height:100vh}
+  aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:18px 18px 40px}
+  header h1{font-size:18px;margin:0 0 2px;letter-spacing:.2px}
+  header p{margin:0 0 14px;color:var(--muted);font-size:12.5px}
+  h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px;font-weight:600}
+  label{display:block;margin:8px 0;font-size:13px}
+  label.row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  select,input[type=number]{width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+  output{float:right;color:var(--muted);font-variant-numeric:tabular-nums}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:6px 0}
+  .seg button{flex:1;border:0;background:transparent;color:var(--ink);padding:7px 6px;font:inherit;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px}
+  .grid3 label,.grid2 label{font-size:12px;color:var(--muted)}
+  details{border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:10px 0;background:var(--bg)}
+  details summary{cursor:pointer;font-weight:600;font-size:13px}
+  .note{font-size:11.5px;color:var(--muted);margin:4px 0}
+  .checks li{list-style:none;margin:5px 0;padding-left:20px;position:relative;font-size:12.5px}
+  .checks{padding:0;margin:0}
+  .checks li::before{content:"";position:absolute;left:2px;top:5px;width:10px;height:10px;border-radius:50%}
+  .checks li.ok::before{background:var(--ok)} .checks li.warn::before{background:var(--warn)} .checks li.bad::before{background:var(--bad)}
+  dl.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:12.5px}
+  dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;font-size:11.5px;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:4px 4px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600}
+  td.n{text-align:right;white-space:nowrap}
+  .btn{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:6px 10px;border-radius:7px;font:inherit;font-size:12.5px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  main{position:relative;overflow:hidden;background:var(--scene)}
+  #view{position:absolute;inset:0}
+  #view canvas{display:block}
+  .labels{position:absolute;inset:0;pointer-events:none}
+  .lbl{font-size:11px;padding:3px 7px;border-radius:999px;background:rgba(30,26,22,.82);color:#f6efe4;white-space:nowrap;
+    box-shadow:0 1px 3px rgba(0,0,0,.25);transform:translateY(-14px)}
+  .lbl.bad{background:var(--bad);color:#fff}
+  .lbl.ok{background:var(--ok);color:#fff}
+  .views{position:absolute;top:12px;right:12px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .legend{position:absolute;left:12px;bottom:12px;font-size:11.5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;opacity:.94}
+  .legend span{display:inline-flex;align-items:center;gap:5px;margin-right:10px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+  .err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted)}
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;grid-template-rows:58vh auto;height:auto}
+    main{order:-1;height:58vh}
+    aside{border-right:0;border-top:1px solid var(--line);padding:16px}
+    .legend{display:none}
+  }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="app">
+<aside>
+  <header>
+    <h1>X2D Oak Enclosure</h1>
+    <p>Parametric concept · oak frame &amp; tapered legs · AMS 2 Pro + AMS HT outside the chamber. All sizes in mm.</p>
+  </header>
+
+  <h2>AMS placement (outside)</h2>
+  <div class="seg" data-key="mount">
+    <button data-v="top">Top deck</button><button data-v="side">Side shelf</button>
+  </div>
+  <div class="seg" data-key="side" id="sideSeg">
+    <button data-v="left">Left side</button><button data-v="right">Right side</button>
+  </div>
+
+  <h2>Printer raise &amp; PTFE clearance</h2>
+  <label>Printer feet riser
+    <select data-key="feet">
+      <option value="0">Stock feet (+0)</option>
+      <option value="15">Anti-vibration pads (+15)</option>
+      <option value="30">Printed riser feet (+30)</option>
+      <option value="50">Riser block / paver (+50)</option>
+    </select>
+  </label>
+  <label>Top-glass lid riser
+    <select data-key="lid">
+      <option value="0">None (PTFE runs over the glass)</option>
+      <option value="20">20 mm lid riser</option>
+      <option value="30">30 mm lid riser</option>
+      <option value="50">50 mm lid riser</option>
+    </select>
+  </label>
+  <label>PTFE bend room above lid <output id="bendOut"></output>
+    <input type="range" min="60" max="160" step="5" data-key="bend">
+  </label>
+  <label>Lock chamber inner height (0 = auto-size)
+    <input type="number" min="0" step="5" data-key="lockH">
+  </label>
+  <p class="note">The lid riser lets the extruder PTFE pass through a notch under the printer's glass lid instead of rubbing over it. Auto-size grows the cabinet so the tube's bend never touches the cabinet's top glass.</p>
+
+  <h2>Stand</h2>
+  <label>Leg height
+    <select data-key="legH">
+      <option value="230">Tabletop (230)</option>
+      <option value="400">Bench (400)</option>
+      <option value="620">Floor-standing (620)</option>
+    </select>
+  </label>
+  <label>Nameplate text <input type="text" data-key="plate" maxlength="22" style="width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font:inherit"></label>
+
+  <h2>View</h2>
+  <label class="row"><input type="checkbox" data-key="doorsOpen"> Doors open</label>
+  <label class="row"><input type="checkbox" data-key="xray"> X-ray panels</label>
+  <label class="row"><input type="checkbox" data-key="showPrinter"> Show printer</label>
+  <label class="row"><input type="checkbox" data-key="showAms"> Show AMS units</label>
+  <label class="row"><input type="checkbox" data-key="exhaust"> Exhaust fan fitted (future)</label>
+  <label class="row"><input type="checkbox" data-key="labels"> Callouts</label>
+
+  <details>
+    <summary>Device &amp; clearance dimensions</summary>
+    <p class="note">Defaults are placeholders — confirm against Bambu Lab's spec sheets before cutting.</p>
+    <div class="grid3">
+      <label>X2D W<input type="number" data-key="pw"></label>
+      <label>X2D D<input type="number" data-key="pd"></label>
+      <label>X2D H<input type="number" data-key="ph"></label>
+      <label>AMS 2 Pro W<input type="number" data-key="a2w"></label>
+      <label>D<input type="number" data-key="a2d"></label>
+      <label>H<input type="number" data-key="a2h"></label>
+      <label>AMS HT W<input type="number" data-key="htw"></label>
+      <label>D<input type="number" data-key="htd"></label>
+      <label>H<input type="number" data-key="hth"></label>
+    </div>
+    <div class="grid3">
+      <label>Side gap<input type="number" data-key="sideGap"></label>
+      <label>Front gap<input type="number" data-key="frontGap"></label>
+      <label>Rear gap<input type="number" data-key="rearGap"></label>
+    </div>
+  </details>
+
+  <h2>Checks</h2>
+  <ul class="checks" id="checks"></ul>
+
+  <h2>Overall</h2>
+  <dl class="kv" id="dims"></dl>
+
+  <h2>Cut list</h2>
+  <table id="cuts"></table>
+  <h2>Panel cut-outs</h2>
+  <p class="note">X measured from the left edge as seen from the front; Y from the chamber floor (or from the back edge for horizontal panels).</p>
+  <table id="holes"></table>
+  <h2>Hardware</h2>
+  <table id="hw"></table>
+  <p style="margin-top:12px"><button class="btn" id="csv">Copy cut list as CSV</button> <span class="note" id="csvMsg"></span></p>
+</aside>
+<main>
+  <div id="view"></div>
+  <div class="views">
+    <button class="btn" data-view="iso">3/4</button>
+    <button class="btn" data-view="front">Front</button>
+    <button class="btn" data-view="side">Side</button>
+    <button class="btn" data-view="back">Back</button>
+    <button class="btn" data-view="top">Top</button>
+  </div>
+  <div class="legend">
+    <span><i style="background:#c99a62"></i>Oak</span>
+    <span><i style="background:#e2cfa6"></i>Birch ply</span>
+    <span><i style="background:#cfe6f2"></i>Acrylic / glass</span>
+    <span><i style="background:#5d6b7a"></i>Printed parts</span>
+    <span><i style="background:#f4f4f4"></i>PTFE</span>
+  </div>
+  <div class="err" id="err">The 3D view needs WebGL and network access to load three.js from jsDelivr.</div>
+</main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const $ = id => document.getElementById(id);
+const F = 30;            // oak frame section (30×30)
+const APRON = 80;        // apron height
+const LEG_T = 46, LEG_B = 28; // leg taper (top → bottom)
+
+const state = {
+  // devices (placeholders — verify)
+  pw: 420, pd: 440, ph: 500,
+  a2w: 372, a2d: 280, a2h: 227,
+  htw: 200, htd: 275, hth: 265,
+  // clearances
+  sideGap: 70, frontGap: 40, rearGap: 150,
+  feet: 0, lid: 30, bend: 90, lockH: 0,
+  legH: 400, plate: 'X2D · OAK',
+  mount: 'top', side: 'right',
+  doorsOpen: false, xray: false, showPrinter: true, showAms: true, exhaust: false, labels: true,
+};
+
+/* ---------------- renderer / scene ---------------- */
+const view = $('view');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+} catch (e) { $('err').style.display = 'flex'; throw e; }
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+view.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.className = 'labels';
+view.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(32, 1, 10, 30000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+
+scene.add(new THREE.HemisphereLight(0xfff4e6, 0x6b5a48, 0.55));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(1400, 2600, 1800);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -1600, right: 1600, top: 1600, bottom: -1600, near: 100, far: 7000 });
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(12000, 12000), new THREE.ShadowMaterial({ opacity: 0.18 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const grid = new THREE.GridHelper(4000, 40, 0x000000, 0x000000);
+grid.material.transparent = true; grid.material.opacity = 0.06; scene.add(grid);
+
+function applyTheme() {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--scene').trim() || '#ece6dc';
+  scene.background = new THREE.Color(c);
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  grid.material.color.set(dark ? 0xffffff : 0x000000);
+}
+applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+/* ---------------- materials ---------------- */
+function woodTex(base, dark, light, seed) {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d');
+  let r = seed; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+  g.fillStyle = base; g.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 110; i++) {
+    const y0 = rnd() * 512, amp = 1 + rnd() * 7, fq = (1 + Math.floor(rnd() * 3)) * Math.PI * 2 / 512, ph = rnd() * 6;
+    g.strokeStyle = dark; g.globalAlpha = 0.04 + rnd() * 0.2; g.lineWidth = 0.5 + rnd() * 2.4;
+    for (const off of [0, 512, -512]) {
+      g.beginPath();
+      for (let x = 0; x <= 512; x += 8) { const y = y0 + off + Math.sin(x * fq + ph) * amp; x ? g.lineTo(x, y) : g.moveTo(x, y); }
+      g.stroke();
+    }
+  }
+  for (let i = 0; i < 160; i++) { // medullary ray flecks typical of quarter-sawn oak
+    g.globalAlpha = 0.06 + rnd() * 0.12; g.fillStyle = rnd() > 0.5 ? light : dark;
+    g.fillRect(rnd() * 512, rnd() * 512, 5 + rnd() * 26, 1 + rnd() * 1.6);
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return t;
+}
+function plateTex(text) {
+  const c = document.createElement('canvas'); c.width = 768; c.height = 200;
+  const g = c.getContext('2d');
+  const wood = woodTex('#8f5f32', '#4b2c12', '#b98a58', 99).image;
+  g.drawImage(wood, 0, 0, 768, 200);
+  g.font = '600 92px Georgia, "Times New Roman", serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(255,240,210,.18)'; g.fillText(text, 386, 104);
+  g.fillStyle = 'rgba(28,14,4,.85)'; g.fillText(text, 384, 101);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+const glassish = (color, opacity, rough = 0.05) => new THREE.MeshPhysicalMaterial({
+  color, transparent: true, opacity, roughness: rough, metalness: 0, side: THREE.DoubleSide, depthWrite: false });
+const M = {
+  oak: new THREE.MeshStandardMaterial({ map: woodTex('#c99a62', '#7a4a1f', '#ecc999', 7), roughness: 0.55 }),
+  ply: new THREE.MeshStandardMaterial({ map: woodTex('#e2cfa6', '#b0905e', '#f3e6c9', 3), roughness: 0.7 }),
+  plate: new THREE.MeshStandardMaterial({ roughness: 0.5 }),
+  acrylic: glassish(0xcfe6f2, 0.14),
+  glass: glassish(0xa9c4c2, 0.2),
+  smoke: glassish(0x1c2024, 0.42, 0.1),
+  printer: new THREE.MeshStandardMaterial({ color: 0x2a2b2f, roughness: 0.55 }),
+  alu: new THREE.MeshStandardMaterial({ color: 0xb5b8bd, metalness: 0.8, roughness: 0.3 }),
+  ams: new THREE.MeshStandardMaterial({ color: 0x34363b, roughness: 0.5 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xc39a45, metalness: 0.9, roughness: 0.28 }),
+  rubber: new THREE.MeshStandardMaterial({ color: 0x161616, roughness: 0.9 }),
+  printed: new THREE.MeshStandardMaterial({ color: 0x5d6b7a, roughness: 0.6, side: THREE.DoubleSide }),
+  ptfe: new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.35, transparent: true, opacity: 0.92 }),
+  ptfeBad: new THREE.MeshStandardMaterial({ color: 0xe0453a, roughness: 0.35, emissive: 0x5a0a05 }),
+  cable: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }),
+  duct: new THREE.MeshStandardMaterial({ color: 0xbfc3c8, metalness: 0.75, roughness: 0.4 }),
+  pipe: glassish(0xd8e6ee, 0.35),
+  screen: new THREE.MeshStandardMaterial({ color: 0x0c1a24, emissive: 0x2f7fb8, emissiveIntensity: 0.6 }),
+  led: new THREE.MeshStandardMaterial({ color: 0x9cf29c, emissive: 0x3cc43c }),
+};
+const SPOOLS = [0xd9532b, 0x2a8a8a, 0xf1c232, 0x3b5bdb, 0xeeeeee];
+const spoolMat = SPOOLS.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.45 }));
+
+function setXray(on) {
+  for (const k of ['ply', 'oak']) {
+    const m = M[k];
+    m.transparent = on && k === 'ply'; m.opacity = on && k === 'ply' ? 0.18 : 1; m.depthWrite = !(on && k === 'ply');
+    m.needsUpdate = true;
+  }
+  M.acrylic.opacity = on ? 0.04 : 0.14;
+  M.glass.opacity = on ? 0.05 : 0.2;
+}
+
+/* ---------------- geometry helpers ---------------- */
+let root = null, labelEls = [], seed = 1;
+const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// Box with world-scaled UVs whose grain follows the longest axis
+function woodGeo(w, h, d) {
+  const g = new THREE.BoxGeometry(w, h, d);
+  const uv = g.attributes.uv, S = 1 / 300, dim = { x: w, y: h, z: d };
+  const long = w >= h && w >= d ? 'x' : (h >= d ? 'y' : 'z');
+  const faces = [['z', 'y'], ['z', 'y'], ['x', 'z'], ['x', 'z'], ['x', 'y'], ['x', 'y']];
+  const ou = rand() * 4, ov = rand() * 4;
+  for (let f = 0; f < 6; f++) {
+    const [ua, va] = faces[f];
+    for (let k = 0; k < 4; k++) {
+      const i = f * 4 + k;
+      let u = uv.getX(i) * dim[ua] * S, v = uv.getY(i) * dim[va] * S;
+      if (va === long) [u, v] = [v, u];
+      uv.setXY(i, u + ou, v + ov);
+    }
+  }
+  return g;
+}
+function box(w, h, d, mat, x, y, z, parent = root) {
+  const m = new THREE.Mesh(mat.map ? woodGeo(w, h, d) : new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z); parent.add(m); return m;
+}
+function cyl(rt, rb, h, mat, x, y, z, axis = 'y', parent = root, seg = 32, open = false) {
+  const g = new THREE.CylinderGeometry(rt, rb, h, seg, 1, open);
+  if (axis === 'x') g.rotateZ(Math.PI / 2);
+  if (axis === 'z') g.rotateX(Math.PI / 2);
+  const m = new THREE.Mesh(g, mat); m.position.set(x, y, z); parent.add(m); return m;
+}
+function tube(pts, r, mat, parent = root) {
+  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+  const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, r, 12, false), mat);
+  parent.add(m); return { mesh: m, curve };
+}
+function ring(r, axis, x, y, z, mat = M.rubber) {
+  const g = new THREE.TorusGeometry(r, 3.2, 10, 36);
+  if (axis === 'y') g.rotateX(Math.PI / 2);
+  if (axis === 'x') g.rotateY(Math.PI / 2);
+  const m = new THREE.Mesh(g, mat); m.position.set(x, y, z); root.add(m); return m;
+}
+// Flat panel with cut-outs, centred, thickness along local z
+function holedPanel(w, h, t, holes, mat) {
+  const s = new THREE.Shape();
+  s.moveTo(-w / 2, -h / 2); s.lineTo(w / 2, -h / 2); s.lineTo(w / 2, h / 2); s.lineTo(-w / 2, h / 2); s.closePath();
+  for (const o of holes) {
+    const p = new THREE.Path();
+    if (o.r) p.absarc(o.x, o.y, o.r, 0, Math.PI * 2, true);
+    else {
+      p.moveTo(o.x - o.w / 2, o.y - o.h / 2); p.lineTo(o.x - o.w / 2, o.y + o.h / 2);
+      p.lineTo(o.x + o.w / 2, o.y + o.h / 2); p.lineTo(o.x + o.w / 2, o.y - o.h / 2); p.closePath();
+    }
+    s.holes.push(p);
+  }
+  const g = new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: false, curveSegments: 40 });
+  g.translate(0, 0, -t / 2);
+  const uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 300, uv.getY(i) / 300);
+  return new THREE.Mesh(g, mat);
+}
+function legGeo(h, dx, dz) {
+  const g = woodGeo(LEG_T, h, LEG_T);
+  g.translate(0, h / 2, 0);
+  const p = g.attributes.position, k = LEG_B / LEG_T;
+  for (let i = 0; i < p.count; i++) if (p.getY(i) < 1) { p.setX(i, p.getX(i) * k + dx); p.setZ(i, p.getZ(i) * k + dz); }
+  g.computeVertexNormals();
+  return g;
+}
+function label(text, pos, cls = '') {
+  if (!state.labels) return;
+  const el = document.createElement('div');
+  el.className = 'lbl ' + cls; el.textContent = text;
+  const o = new CSS2DObject(el); o.position.set(...pos); root.add(o); labelEls.push(el);
+}
+
+/* ---------------- derived dimensions ---------------- */
+function derive() {
+  const s = state;
+  const iw = s.pw + 2 * s.sideGap;
+  const id = s.pd + s.frontGap + s.rearGap;
+  const autoH = s.feet + s.ph + s.lid + 8 + s.bend + 20;
+  const ih = s.lockH > 0 ? s.lockH : autoH;
+  const ow = iw + 2 * F, od = id + 2 * F, oh = ih + 2 * F;
+  const yBase = s.legH, yF = yBase + F, yIT = yF + ih, yTop = yIT + F;
+  const pcz = id / 2 - s.frontGap - s.pd / 2, pRear = pcz - s.pd / 2;
+  const yPB = yF + s.feet, yPT = yPB + s.ph, yLidT = yPT + s.lid + 8;
+  const maxD = Math.max(s.a2d, s.htd);
+  const deckD = Math.min(maxD + 70, id - 120);
+  const shelfD = maxD + 30;
+  const splay = Math.round(s.legH * 0.07);
+  const shelfY = Math.max(25, Math.round(s.legH * 0.12));       // lower shelf bottom
+  const shelfTop = shelfY + 18;
+  const binH = Math.max(60, Math.min(150, yBase - APRON - 12 - shelfTop));
+  const chuteX = -s.pw / 2 + 70, chuteZ = pRear - 55;
+  return { iw, id, ih, autoH, ow, od, oh, yBase, yF, yIT, yTop, pcz, pRear, yPB, yPT, yLidT,
+    maxD, deckD, shelfD, splay, shelfY, shelfTop, binH, chuteX, chuteZ, bendRoom: yIT - yLidT };
+}
+
+/* ---------------- sub-models ---------------- */
+function buildPrinter(d) {
+  const s = state, g = new THREE.Group();
+  g.position.set(0, d.yPB, d.pcz); root.add(g);
+  const { pw, pd, ph } = s;
+  if (s.feet > 0) for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    cyl(26, 28, s.feet, s.feet >= 30 ? M.printed : M.rubber, sx * (pw / 2 - 45), -s.feet / 2, sz * (pd / 2 - 45), 'y', g);
+  box(12, ph, pd, M.printer, -pw / 2 + 6, ph / 2, 0, g);
+  box(12, ph, pd, M.printer, pw / 2 - 6, ph / 2, 0, g);
+  box(pw, ph, 12, M.printer, 0, ph / 2, -pd / 2 + 6, g);
+  box(pw, 70, pd, M.printer, 0, 35, 0, g);
+  box(pw, 24, 40, M.printer, 0, ph - 12, pd / 2 - 20, g);
+  box(pw, 24, 40, M.printer, 0, ph - 12, -pd / 2 + 20, g);
+  for (const sx of [-1, 1]) box(40, 24, pd, M.printer, sx * (pw / 2 - 20), ph - 12, 0, g);
+  box(pw - 24, ph - 94, 4, M.smoke, 0, 70 + (ph - 94) / 2, pd / 2 - 2, g);
+  box(110, 56, 4, M.screen, -pw / 2 + 80, 36, pd / 2 + 1, g);
+  box(pw - 90, 8, pd - 110, M.alu, 0, ph * 0.42, 0, g);
+  box(pw - 30, 22, 26, M.alu, 0, ph - 70, -10, g);
+  for (const sx of [-1, 1]) box(16, 16, pd - 60, M.alu, sx * (pw / 2 - 26), ph - 70, 0, g);
+  box(84, 90, 64, M.printer, 0, ph - 110, 14, g);
+  for (const sx of [-1, 1]) cyl(5, 2, 14, M.brass, sx * 18, ph - 162, 14, 'y', g);
+  // lid riser with two rear PTFE notches (one per nozzle)
+  if (s.lid > 0) {
+    const t = 16, gap = 36, y = ph + s.lid / 2;
+    box(pw, s.lid, t, M.printed, 0, y, pd / 2 - t / 2, g);
+    for (const sx of [-1, 1]) box(t, s.lid, pd - 2 * t, M.printed, sx * (pw / 2 - t / 2), y, 0, g);
+    const cuts = [-pw / 2, -70 - gap / 2, -70 + gap / 2, 70 - gap / 2, 70 + gap / 2, pw / 2];
+    for (let i = 0; i < cuts.length; i += 2) {
+      const a = cuts[i], b = cuts[i + 1];
+      box(b - a, s.lid, t, M.printed, (a + b) / 2, y, -pd / 2 + t / 2, g);
+    }
+  }
+  box(pw - 4, 8, pd - 4, M.smoke, 0, ph + s.lid + 4, 0, g);
+  return g;
+}
+
+function amsUnit(w, dd, h, n, mats) {
+  const g = new THREE.Group();
+  const bh = h * 0.5;
+  box(w, bh, dd, M.ams, 0, bh / 2, 0, g);
+  box(w - 8, h - bh, dd - 8, M.smoke, 0, bh + (h - bh) / 2, 0, g);
+  box(w, 6, dd, M.ams, 0, h - 3, 0, g).material = M.ams;
+  const r = Math.min(h * 0.42, dd * 0.38), slot = (w - 30) / n;
+  for (let i = 0; i < n; i++) {
+    cyl(r, r, slot * 0.72, mats[i % mats.length], -w / 2 + 15 + slot * (i + 0.5), r + 14, 0, 'x', g, 40);
+    box(10, 4, 2, M.led, -w / 2 + 15 + slot * (i + 0.5), bh * 0.35, dd / 2 + 1, g);
+  }
+  return g;
+}
+
+/* ---------------- main build ---------------- */
+function build() {
+  if (root) {
+    scene.remove(root);
+    root.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    labelEls.forEach(e => e.remove()); labelEls = [];
+  }
+  root = new THREE.Group(); scene.add(root);
+  seed = 12345;
+  const s = state, d = derive();
+  const { iw, id, ih, ow, od, oh, yBase, yF, yIT, yTop } = d;
+  const xS = iw / 2 + F / 2, zS = id / 2 + F / 2;
+  const sideSign = s.side === 'right' ? 1 : -1;
+
+  /* --- stand: tapered splayed legs, apron, lower shelf --- */
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const lx = sx * (ow / 2 - LEG_T / 2), lz = sz * (od / 2 - LEG_T / 2);
+    const leg = new THREE.Mesh(legGeo(yBase, sx * d.splay, sz * d.splay), M.oak);
+    leg.position.set(lx, 0, lz); root.add(leg);
+    const f = 1 - 14 / yBase;
+    box(LEG_B + 4, 28, LEG_B + 4, M.brass, lx + sx * d.splay * f, 14, lz + sz * d.splay * f);
+  }
+  const yA = yBase - APRON / 2;
+  box(ow - 2 * LEG_T, APRON, 22, M.oak, 0, yA, od / 2 - 11);
+  box(ow - 2 * LEG_T, APRON, 22, M.oak, 0, yA, -od / 2 + 11);
+  box(22, APRON, od - 2 * LEG_T, M.oak, ow / 2 - 11, yA, 0);
+  box(22, APRON, od - 2 * LEG_T, M.oak, -ow / 2 + 11, yA, 0);
+  const spl = d.splay * (1 - d.shelfY / yBase);
+  const shW = ow - LEG_T * 1.6 + 2 * spl, shD = od - LEG_T * 1.6 + 2 * spl;
+  box(shW, 18, shD, M.oak, 0, d.shelfY + 9, 0);
+  // nameplate — the small signature plate on the front apron
+  const pm = M.plate.clone(); pm.map = plateTex(s.plate || ' ');
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(170, 44, 5), [M.oak, M.oak, M.oak, M.oak, pm, M.oak]);
+  plate.position.set(0, yA, od / 2 + 2.5); root.add(plate);
+  for (const sx of [-1, 1]) cyl(2.6, 2.6, 2, M.brass, sx * 74, yA, od / 2 + 5.5, 'z');
+  label('Oak nameplate', [0, yA - 34, od / 2 + 6]);
+  label('Tapered, splayed oak legs', [ow / 2 + d.splay * 0.6, yBase * 0.45, od / 2 + d.splay * 0.6]);
+
+  /* --- chamber frame --- */
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(F, oh, F, M.oak, sx * xS, yBase + oh / 2, sz * zS);
+  for (const y of [yBase + F / 2, yTop - F / 2]) {
+    for (const sz of [-1, 1]) box(iw, F, F, M.oak, 0, y, sz * zS);
+    for (const sx of [-1, 1]) box(F, F, id, M.oak, sx * xS, y, 0);
+  }
+
+  /* --- floor with purge-chute hole --- */
+  const floor = holedPanel(iw, id, 18, [{ x: d.chuteX, y: -d.chuteZ, r: 32 }], M.ply);
+  floor.rotation.x = -Math.PI / 2; floor.position.set(0, yF - 9, 0); root.add(floor);
+
+  /* --- back panel: exhaust port + cable slot --- */
+  const yMid = yF + ih / 2;
+  const ex = iw / 2 - 110, ey = yIT - 110;
+  const cabX = iw / 2 - 120, cabY = yF + 60;
+  const back = holedPanel(iw, ih, 12, [
+    { x: ex, y: ey - yMid, r: 51 },
+    { x: cabX, y: cabY - yMid, w: 110, h: 40 },
+  ], M.ply);
+  back.position.set(0, yMid, -zS); root.add(back);
+  box(110, 40, 4, M.rubber, cabX, cabY, -zS - 8).scale.set(1, 0.25, 1); // brush grommet
+  box(110, 4, 6, M.rubber, cabX, cabY + 18, -zS - 8);
+  box(110, 4, 6, M.rubber, cabX, cabY - 18, -zS - 8);
+
+  /* --- side panels (acrylic), PTFE bulkheads on the AMS side if side-mounted --- */
+  const sideG = [];
+  const gy = Math.min(yIT - 30, Math.max(d.yLidT + 30, yF + 120));
+  if (s.mount === 'side') for (let i = 0; i < 2; i++) sideG.push({ z: -id / 2 + 45 + i * 50, y: gy });
+  for (const sx of [-1, 1]) {
+    const holes = sx === sideSign ? sideG.map(h => ({ x: -h.z, y: h.y - yMid, r: 11 })) : [];
+    const p = holedPanel(id, ih, 5, holes, M.acrylic);
+    p.rotation.y = Math.PI / 2; p.position.set(sx * xS, yMid, 0); root.add(p);
+  }
+  sideG.forEach(h => { ring(11, 'x', sideSign * (xS + 4), h.y, h.z); ring(11, 'x', sideSign * (xS - 4), h.y, h.z); });
+
+  /* --- top: AMS deck (top mount) + glass --- */
+  const topG = [];
+  let amsTop = null;
+  if (s.mount === 'top') {
+    const total = s.a2w + 20 + s.htw, x0 = -total / 2;
+    amsTop = { a2x: x0 + s.a2w / 2, htx: x0 + s.a2w + 20 + s.htw / 2 };
+    const gz = -id / 2 + 25;
+    topG.push({ x: amsTop.a2x, z: gz }, { x: amsTop.htx, z: gz });
+    const zc = -id / 2 + d.deckD / 2;
+    const deck = holedPanel(iw, d.deckD, 18, topG.map(h => ({ x: h.x, y: -(h.z - zc), r: 11 })), M.oak);
+    deck.rotation.x = -Math.PI / 2; deck.position.set(0, yTop - 9, zc); root.add(deck);
+    topG.forEach(h => ring(11, 'y', h.x, yTop + 1, h.z));
+    box(iw, F, F, M.oak, 0, yTop - F / 2, -id / 2 + d.deckD + F / 2);
+    const gd = id - d.deckD - F;
+    box(iw, 5, gd, M.glass, 0, yTop - 8, -id / 2 + d.deckD + F + gd / 2);
+  } else {
+    box(iw, 5, id, M.glass, 0, yTop - 8, 0);
+  }
+
+  /* --- front doors (oak frame, acrylic infill) --- */
+  const dw = iw / 2 - 2, dh = ih - 4, df = 25, dt = 20;
+  for (const sg of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(sg * iw / 2, yMid, zS); root.add(pivot);
+    if (s.doorsOpen) pivot.rotation.y = sg * 1.92;
+    const door = new THREE.Group(); door.position.x = -sg * dw / 2; pivot.add(door);
+    for (const sx of [-1, 1]) box(df, dh, dt, M.oak, sx * (dw / 2 - df / 2), 0, 0, door);
+    for (const sy of [-1, 1]) box(dw - 2 * df, df, dt, M.oak, 0, sy * (dh / 2 - df / 2), 0, door);
+    box(dw - 2 * df + 8, dh - 2 * df + 8, 4, M.acrylic, 0, 0, 0, door);
+    cyl(9, 7, 22, M.brass, -sg * (dw - df / 2), 0, dt / 2 + 11, 'z', pivot);
+    for (const sy of [-1, 1]) box(6, 60, 24, M.brass, 0, sy * (dh / 2 - 110), 0, pivot);
+  }
+
+  /* --- printer --- */
+  const printer = buildPrinter(d);
+  printer.visible = s.showPrinter;
+  if (s.lid > 0) label(`Lid riser ${s.lid} mm · PTFE notches`, [0, d.yPT + s.lid / 2, d.pRear], 'ok');
+  if (s.feet > 0) label(`Printer raised +${s.feet} mm`, [-s.pw / 2, d.yPB - s.feet / 2, d.pcz + s.pd / 2]);
+
+  /* --- AMS units + PTFE routing --- */
+  const ptfeMat = s.lid > 0 ? M.ptfe : M.ptfeBad;
+  const yR = d.yPT + s.lid / 2;          // riser notch height
+  const feeds = [];                       // {xo, entry:[...], inside:[...]}
+  const inside = (xo, from) => {
+    const pts = [...from];
+    if (s.lid > 0) {
+      pts.push([xo, yR + Math.min(60, (yIT - yR) * 0.45), d.pRear - 60]);
+      pts.push([xo, yR, d.pRear - 18], [xo, yR, d.pRear + 30]);
+    } else {
+      pts.push([xo, d.yLidT + 30, d.pRear - 50], [xo, d.yLidT + 4, d.pRear + 10], [xo, d.yLidT + 4, d.pRear + 60]);
+    }
+    pts.push([xo * 0.5, d.yPT - 45, d.pcz - 30], [xo * 0.2, d.yPT - 64, d.pcz + 14]);
+    return pts;
+  };
+
+  if (s.mount === 'top') {
+    const zBackAms = -id / 2 + 60;
+    const units = [
+      { w: s.a2w, dd: s.a2d, h: s.a2h, n: 4, x: amsTop.a2x, mats: spoolMat.slice(0, 4), name: 'AMS 2 Pro', xo: -70 },
+      { w: s.htw, dd: s.htd, h: s.hth, n: 1, x: amsTop.htx, mats: [spoolMat[4]], name: 'AMS HT', xo: 70 },
+    ];
+    units.forEach((u, i) => {
+      const g = amsUnit(u.w, u.dd, u.h, u.n, u.mats);
+      g.position.set(u.x, yTop, zBackAms + u.dd / 2); g.visible = s.showAms; root.add(g);
+      label(u.name, [u.x, yTop + u.h + 14, zBackAms + u.dd / 2]);
+      const gz = topG[i].z;
+      tube([[u.x, yTop + 40, zBackAms], [u.x, yTop + 46, zBackAms - 18], [u.x, yTop + 22, gz], [u.x, yTop - 5, gz]], 2, M.ptfe);
+      tube(inside(u.xo, [[u.x, yTop - 5, gz], [u.x, yIT - 30, gz + 6]]), 2, ptfeMat);
+    });
+    label('PTFE grommets in oak deck', [0, yTop + 8, -id / 2 + 25]);
+  } else {
+    const shY = Math.min(d.yLidT - 20, yTop - 40);
+    const sx = sideSign, xo0 = sx * ow / 2;
+    box(d.shelfD, 18, od, M.oak, sx * (ow / 2 + d.shelfD / 2), shY - 9, 0);
+    box(22, 70, od, M.oak, sx * (ow / 2 + 11), shY - 18 - 35, 0); // mounting cleat
+    const tri = new THREE.Shape(); tri.moveTo(0, 0); tri.lineTo(d.shelfD - 30, 0); tri.lineTo(0, -190); tri.closePath();
+    const tg = new THREE.ExtrudeGeometry(tri, { depth: 26, bevelEnabled: false }); tg.translate(0, 0, -13);
+    const tuv = tg.attributes.uv; for (let i = 0; i < tuv.count; i++) tuv.setXY(i, tuv.getX(i) / 300, tuv.getY(i) / 300);
+    for (const z of [-od / 2 + 60, od / 2 - 60]) {
+      const b = new THREE.Mesh(tg, M.oak);
+      b.position.set(xo0 + sx * 22, shY - 18, z); if (sx < 0) b.rotation.y = Math.PI; root.add(b);
+    }
+    const units = [
+      { w: s.a2w, dd: s.a2d, h: s.a2h, n: 4, mats: spoolMat.slice(0, 4), name: 'AMS 2 Pro', xo: -70 },
+      { w: s.htw, dd: s.htd, h: s.hth, n: 1, mats: [spoolMat[4]], name: 'AMS HT', xo: 70 },
+    ];
+    let zc = -od / 2 + 15;
+    units.forEach((u, i) => {
+      const cz = zc + u.w / 2; zc += u.w + 20;
+      const cx = sx * (ow / 2 + 26 + u.dd / 2);
+      const g = amsUnit(u.w, u.dd, u.h, u.n, u.mats);
+      g.rotation.y = sx * Math.PI / 2; g.position.set(cx, shY, cz); g.visible = s.showAms; root.add(g);
+      label(u.name, [cx, shY + u.h + 14, cz]);
+      const h = sideG[i];
+      tube([[sx * (ow / 2 + 26), shY + 40, cz], [sx * (ow / 2 + 14), shY + 60, (cz + h.z) / 2], [sx * (xS + 12), h.y, h.z], [sx * (xS - 5), h.y, h.z]], 2, M.ptfe);
+      tube(inside(u.xo, [[sx * (xS - 5), h.y, h.z], [sx * (iw / 2 - 50), h.y, h.z + 5]]), 2, ptfeMat);
+    });
+    label('AMS side shelf + PTFE bulkheads', [sx * (ow / 2 + d.shelfD / 2), shY - 60, od / 2]);
+  }
+  if (s.lid === 0) {
+    for (const xo of [-70, 70]) { const b = new THREE.Mesh(new THREE.SphereGeometry(9, 16, 12), M.ptfeBad); b.position.set(xo, d.yLidT + 4, d.pRear + 10); root.add(b); }
+    label('PTFE rubs on the glass lid — add a lid riser', [0, d.yLidT + 30, d.pRear], 'bad');
+  }
+
+  /* --- purge chute → external pull-out bin --- */
+  const cx = d.chuteX, cz = d.chuteZ;
+  tube([[cx, d.yPB + 30, d.pRear + 12], [cx, d.yPB + 22, d.pRear - 20], [cx, yF + 14, cz]], 20, M.printed);
+  cyl(46, 30, 40, M.printed, cx, yF - 14, cz, 'y', root, 32, true);
+  const binTop = d.shelfTop + d.binH;
+  const pipeTop = yF - 34, pipeBot = binTop + 15;
+  if (pipeTop > pipeBot) cyl(27, 27, pipeTop - pipeBot, M.pipe, cx, (pipeTop + pipeBot) / 2, cz, 'y', root, 24, true);
+  const bw = 200, bd = 170, bt = 9;
+  box(bw, bt, bd, M.oak, cx, d.shelfTop + bt / 2, cz);
+  for (const sz of [-1, 1]) box(bw, d.binH, bt, M.oak, cx, d.shelfTop + d.binH / 2, cz + sz * (bd / 2 - bt / 2));
+  for (const sxx of [-1, 1]) box(bt, d.binH, bd - 2 * bt, M.oak, cx + sxx * (bw / 2 - bt / 2), d.shelfTop + d.binH / 2, cz);
+  cyl(5, 5, 60, M.brass, cx - bw / 2 - 10, d.shelfTop + d.binH / 2, cz, 'z');
+  label('Purge chute → floor drop', [cx, yF + 40, cz]);
+  label('Pull-out purge bin (outside chamber)', [cx - bw / 2, d.shelfTop + d.binH + 10, cz]);
+
+  /* --- power / network cable out through brush grommet --- */
+  const outZ = -od / 2;
+  tube([[s.pw / 2 - 60, d.yPB + 50, d.pRear], [cabX, cabY + 4, -id / 2 + 30], [cabX, cabY, -zS - 4], [cabX, cabY - 20, outZ - 22],
+    [cabX + 10, yBase - APRON - 30, outZ - 22], [cabX + 20, 30, outZ - 40], [cabX + 30, 4, outZ - 260]], 4, M.cable);
+  label('Cable pass-through (brush grommet)', [cabX, cabY - 50, outZ - 10]);
+
+  /* --- exhaust port (future fan + carbon filter) --- */
+  cyl(55, 55, 36, M.alu, ex, ey, -zS - 18, 'z', root, 40, true);
+  if (s.exhaust) {
+    cyl(82, 82, 150, M.printer, ex, ey, outZ - 36 - 75, 'z');
+    tube([[ex, ey, outZ - 180], [ex, ey, outZ - 260], [ex, ey + 140, outZ - 330], [ex, ey + 480, outZ - 360]], 52, M.duct);
+    label('Inline fan + Ø100 duct to window', [ex, ey + 120, outZ - 200]);
+  } else {
+    cyl(58, 58, 6, M.oak, ex, ey, -zS - 39, 'z');
+    label('Ø100 exhaust port (capped, future)', [ex, ey + 70, outZ - 30]);
+  }
+
+  /* --- shadows --- */
+  root.traverse(o => { if (o.isMesh) { const tr = Array.isArray(o.material) ? false : o.material.transparent; o.castShadow = !tr; o.receiveShadow = !tr; } });
+
+  updatePanel(d, { topG, sideG, ex, ey, cabX, cabY });
+}
+
+/* ---------------- side panel: checks, dims, cut list ---------------- */
+let csvText = '';
+function updatePanel(d, h) {
+  const s = state, r = Math.round;
+  const checks = [];
+  checks.push(s.lid > 0
+    ? ['ok', `Extruder PTFE passes through the ${s.lid} mm lid-riser notch — no contact with the printer's glass lid.`]
+    : ['bad', 'No lid riser: the PTFE has to cross the glass lid edge and will rub. Pick a 20–50 mm riser.']);
+  const br = r(d.bendRoom);
+  checks.push(br >= 80 ? ['ok', `Bend room above printer lid: ${br} mm (≥ 80 keeps the tube off the cabinet glass).`]
+    : br >= 55 ? ['warn', `Bend room above printer lid only ${br} mm — tight bend, may touch the cabinet top.`]
+      : ['bad', `Bend room ${br} mm — the PTFE will hit the cabinet top. Raise or unlock the chamber height.`]);
+  if (s.lockH > 0 && s.lockH < d.autoH) checks.push(['warn', `Locked chamber height is ${r(d.autoH - s.lockH)} mm lower than auto-size.`]);
+  const amsRun = s.a2w + 20 + s.htw;
+  if (s.mount === 'top') checks.push(amsRun <= d.ow ? ['ok', `Both AMS units fit on the top deck (${amsRun} of ${r(d.ow)} mm).`]
+    : ['warn', `AMS units overhang the top by ${amsRun - r(d.ow)} mm — widen side gap or use side shelf.`]);
+  else checks.push(amsRun + 15 <= d.od ? ['ok', `Both AMS units fit along the ${s.side} shelf (${amsRun} of ${r(d.od)} mm).`]
+    : ['warn', `AMS units overhang the shelf by ${amsRun + 15 - r(d.od)} mm.`]);
+  const chuteClear = d.chuteZ - 32 - (-d.id / 2);
+  checks.push(chuteClear >= 15 ? ['ok', `Purge chute drops through the floor into an external bin (${d.binH} mm tall) — no waste inside the chamber.`]
+    : ['bad', 'Rear gap too small for the chute hole — increase rear gap to ≥ 110 mm.']);
+  checks.push(['ok', 'Cables leave via a rear brush grommet; Ø100 exhaust port pre-cut and capped.']);
+  $('checks').innerHTML = checks.map(([c, t]) => `<li class="${c}">${t}</li>`).join('');
+
+  const H = d.yTop + (s.mount === 'top' ? Math.max(s.a2h, s.hth) : 0);
+  const W = d.ow + 2 * d.splay + (s.mount === 'side' ? d.shelfD + 26 : 0);
+  $('dims').innerHTML = [
+    ['Cabinet (W × D × H)', `${r(d.ow)} × ${r(d.od)} × ${r(d.yTop)}`],
+    ['Footprint at feet', `${r(d.ow + 2 * d.splay)} × ${r(d.od + 2 * d.splay)}`],
+    ['Width incl. AMS', `${r(W)}`],
+    ['Height incl. AMS', `${r(H)}`],
+    ['Chamber inside', `${r(d.iw)} × ${r(d.id)} × ${r(d.ih)}`],
+    ['Printer base above floor', `${r(d.yPB)}`],
+    ['PTFE bend room', `${r(d.bendRoom)}`],
+  ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+  const rows = [];
+  const add = (part, mat, qty, L, W, T, note = '') => rows.push([part, mat, qty, r(L), r(W), T, note]);
+  add('Corner stile', 'Oak 30×30', 4, d.oh, 30, 30, '6 mm panel grooves, 2 faces');
+  add('Rail, width (top/bottom × front/back)', 'Oak 30×30', 4, d.iw, 30, 30, 'Dowel/Domino joints');
+  add('Rail, depth (top/bottom × sides)', 'Oak 30×30', 4, d.id, 30, 30, '');
+  if (s.mount === 'top') add('Deck cross-rail', 'Oak 30×30', 1, d.iw, 30, 30, 'Splits AMS deck / glass');
+  add('Leg (tapered + splayed)', 'Oak 50×50 blank', 4, d.yBase + 10, 46, 46, `Taper 46→28, ${d.splay} mm splay, brass ferrule`);
+  add('Apron, front/back', 'Oak 22 × 80', 2, d.ow - 2 * LEG_T, 80, 22, 'Front carries nameplate');
+  add('Apron, sides', 'Oak 22 × 80', 2, d.od - 2 * LEG_T, 80, 22, '');
+  add('Lower shelf', 'Oak-veneer ply 18', 1, d.ow - LEG_T * 1.6, d.od - LEG_T * 1.6, 18, 'Notch corners at legs');
+  add('Nameplate', 'Dark oak', 1, 170, 44, 5, `Engraved "${s.plate}"`);
+  add('Chamber floor', 'Birch ply 18', 1, d.iw, d.id, 18, 'Ø64 chute hole');
+  add('Back panel', 'Birch ply 12', 1, d.iw + 12, d.ih + 12, 12, 'In grooves; Ø102 + 110×40 cut-outs');
+  add('Side panel', 'Clear acrylic 5', 2, d.id + 12, d.ih + 12, 5, s.mount === 'side' ? `${s.side}: 2× Ø22 bulkheads` : '');
+  if (s.mount === 'top') {
+    add('AMS deck', 'Oak-veneer ply 18', 1, d.iw, d.deckD, 18, '2× Ø22 PTFE grommets');
+    add('Top glass', 'Tempered glass 5', 1, d.iw + 12, d.id - d.deckD - F + 12, 5, 'Rebated, silicone bumpers');
+  } else add('Top glass', 'Tempered glass 5', 1, d.iw + 12, d.id + 12, 5, 'Rebated, silicone bumpers');
+  const dw = d.iw / 2 - 2, dh = d.ih - 4;
+  add('Door stile', 'Oak 25×20', 4, dh, 25, 20, '6 mm rabbet');
+  add('Door rail', 'Oak 25×20', 4, dw - 50, 25, 20, '');
+  add('Door infill', 'Clear acrylic 4', 2, dw - 50 + 12, dh - 50 + 12, 4, '');
+  add('Purge bin (base + 4 walls)', 'Oak 9', 1, 200, 170, 9, `Walls ${d.binH} high`);
+  if (s.mount === 'side') {
+    add('AMS side shelf', 'Oak-veneer ply 18', 1, d.od, d.shelfD, 18, `${s.side} side`);
+    add('Shelf cleat', 'Oak 22×70', 1, d.od, 70, 22, 'Bolted to stiles');
+    add('Shelf bracket', 'Oak 26', 2, d.shelfD - 30, 190, 26, 'Triangular');
+  }
+  if (s.lid > 0) add('Lid riser', 'Printed PETG/ASA', 1, s.pw, s.pd, s.lid, '2 rear PTFE notches');
+  if (s.feet > 0) add('Riser feet', s.feet >= 30 ? 'Printed PETG' : 'TPU pads', 4, 56, 56, s.feet, '');
+  $('cuts').innerHTML = '<tr><th>Part</th><th>Material</th><th class="n">Qty</th><th class="n">L × W × T</th></tr>' +
+    rows.map(x => `<tr><td>${x[0]}${x[6] ? `<br><span class="note">${x[6]}</span>` : ''}</td><td>${x[1]}</td><td class="n">${x[2]}</td><td class="n">${x[3]} × ${x[4]} × ${x[5]}</td></tr>`).join('');
+
+  const holes = [];
+  holes.push(['Back panel', 'Exhaust port', 'Ø102', `X ${r(h.ex + d.iw / 2)}, Y ${r(h.ey - d.yF)}`]);
+  holes.push(['Back panel', 'Cable slot (brush)', '110 × 40', `X ${r(h.cabX + d.iw / 2)}, Y ${r(h.cabY - d.yF)}`]);
+  holes.push(['Floor', 'Purge chute', 'Ø64', `X ${r(d.chuteX + d.iw / 2)}, ${r(d.chuteZ + d.id / 2)} from back`]);
+  h.topG.forEach((g, i) => holes.push(['AMS deck', `PTFE grommet ${i + 1}`, 'Ø22', `X ${r(g.x + d.iw / 2)}, ${r(g.z + d.id / 2)} from back`]));
+  h.sideG.forEach((g, i) => holes.push([`${s.side[0].toUpperCase() + s.side.slice(1)} side panel`, `PTFE bulkhead ${i + 1}`, 'Ø22', `${r(g.z + d.id / 2)} from back, Y ${r(g.y - d.yF)}`]));
+  $('holes').innerHTML = '<tr><th>Panel</th><th>Feature</th><th>Size</th><th>Position</th></tr>' +
+    holes.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td><td>${x[2]}</td><td>${x[3]}</td></tr>`).join('');
+
+  const hw = [
+    ['Brass butt hinges 60 mm', 4], ['Magnetic door catches', 2], ['Brass knobs', 2],
+    ['Brush grommet 110 × 40', 1], ['PTFE bulkhead couplers (PC4-M10)', 2], ['Rubber grommets Ø22', 2],
+    ['Ø100 duct flange + blanking cap', 1], ['Clear PETG tube Ø54 for chute', `${Math.max(0, r(d.yF - 34 - d.shelfTop - d.binH - 15))} mm`],
+    ['Brass leg ferrules', 4], ['Silicone glass bumpers', 8], ['Door seal (EPDM D-profile)', `${r(2 * (d.iw + d.ih) / 1000 * 10) / 10} m`],
+  ];
+  if (s.exhaust) hw.push(['Inline fan Ø100 + carbon filter + flex duct', 1]);
+  $('hw').innerHTML = hw.map(([a, b]) => `<tr><td>${a}</td><td class="n">${b}</td></tr>`).join('');
+
+  csvText = ['Part,Material,Qty,L,W,T,Notes', ...rows.map(x => x.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+}
+
+/* ---------------- controls ---------------- */
+function syncControls() {
+  document.querySelectorAll('[data-key]').forEach(el => {
+    const k = el.dataset.key, v = state[k];
+    if (el.classList.contains('seg')) el.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    else if (el.type === 'checkbox') el.checked = !!v;
+    else el.value = v;
+  });
+  $('sideSeg').style.display = state.mount === 'side' ? 'flex' : 'none';
+  $('bendOut').textContent = state.bend + ' mm';
+}
+document.querySelectorAll('.seg').forEach(seg => seg.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  state[seg.dataset.key] = b.dataset.v; syncControls(); build();
+}));
+document.querySelectorAll('input[data-key],select[data-key]').forEach(el => {
+  const ev = el.type === 'range' || el.type === 'text' ? 'input' : 'change';
+  el.addEventListener(ev, () => {
+    const k = el.dataset.key;
+    if (el.type === 'checkbox') state[k] = el.checked;
+    else if (el.type === 'text') state[k] = el.value;
+    else { const n = Number(el.value); if (!Number.isFinite(n) || n < 0) return; state[k] = n; }
+    if (k === 'xray') setXray(state.xray);
+    syncControls(); build();
+  });
+});
+$('csv').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(csvText); $('csvMsg').textContent = 'Copied.'; }
+  catch { $('csvMsg').textContent = 'Clipboard blocked by browser.'; }
+});
+
+function setView(name) {
+  const d = derive();
+  const target = new THREE.Vector3(0, d.yTop * 0.55, 0);
+  const R = Math.max(d.ow, d.od, d.yTop) * 2.3;
+  const dirs = { iso: [0.75, 0.45, 1], front: [0, 0.2, 1], side: [1, 0.2, 0.02], back: [-0.55, 0.35, -1], top: [0.01, 1, 0.25] };
+  const v = new THREE.Vector3(...dirs[name]).normalize().multiplyScalar(R);
+  camera.position.copy(target).add(v); controls.target.copy(target); controls.update();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h); labelRenderer.setSize(w, h);
+  camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(view);
+
+syncControls();
+build();
+resize();
+setView('iso');
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); });
+</script>
+</body>
+</html>
